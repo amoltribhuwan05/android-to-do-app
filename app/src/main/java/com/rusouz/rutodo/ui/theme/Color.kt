@@ -2,8 +2,8 @@ package com.rusouz.rutodo.ui.theme
 
 import androidx.compose.ui.graphics.Color
 
-val LogoColor = Color(0xFF6200EE) // REPLACE with your logo color
-val DarkTaskNameColor = Color(0xFFFFFFFF) // REPLACE with your dark mode text color
+val LogoColor = Color(0xFF6200EE)
+val DarkTaskNameColor = Color(0xFFFFFFFF)
 
 //Material 3 default
 val Purple80 = Color(0xFFD0BCFF)

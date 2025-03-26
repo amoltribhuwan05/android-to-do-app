@@ -8,11 +8,13 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material3.Divider
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.RadioButtonDefaults
 import androidx.compose.material3.Scaffold
@@ -36,9 +38,6 @@ fun SettingsScreen(
     onSettingsChanged: (AppSettings) -> Unit,
     onNavigateBack: () -> Unit
 ) {
-    var isDarkMode by remember { mutableStateOf(currentSettings.isDarkMode) }
-    var sortBy by remember { mutableStateOf(currentSettings.sortBy) }
-
     Scaffold(
         topBar = {
             TopAppBar(
@@ -54,77 +53,103 @@ fun SettingsScreen(
                     navigationIconContentColor = MaterialTheme.colorScheme.onPrimary
                 )
             )
+        },
+        content = { innerPadding ->
+            SettingsContent(
+                currentSettings = currentSettings,
+                onSettingsChanged = onSettingsChanged,
+                modifier = Modifier.padding(innerPadding)
+            )
         }
-    ) { innerPadding ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(innerPadding)
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
-        ) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(16.dp)
-            ) {
-                Text("Dark Mode", modifier = Modifier.weight(1f))
-                Switch(
-                    checked = isDarkMode,
-                    onCheckedChange = {
-                        isDarkMode = it
-                        onSettingsChanged(currentSettings.copy(isDarkMode = it))
-                    }
-                )
-            }
+    )
+}
 
-            Divider()
-
-            Text("Sort By")
-            Column {
-                SortOption(
-                    text = "Category",
-                    selected = sortBy == SortBy.CATEGORY,
-                    onSelect = {
-                        sortBy = SortBy.CATEGORY
-                        onSettingsChanged(currentSettings.copy(sortBy = SortBy.CATEGORY))
-                    }
-                )
-                SortOption(
-                    text = "Completed",
-                    selected = sortBy == SortBy.COMPLETED,
-                    onSelect = {
-                        sortBy = SortBy.COMPLETED
-                        onSettingsChanged(currentSettings.copy(sortBy = SortBy.COMPLETED))
-                    }
-                )
-                SortOption(
-                    text = "None",
-                    selected = sortBy == SortBy.NONE,
-                    onSelect = {
-                        sortBy = SortBy.NONE
-                        onSettingsChanged(currentSettings.copy(sortBy = SortBy.NONE))
-                    }
-                )
+@Composable
+fun SettingsContent(
+    currentSettings: AppSettings,
+    onSettingsChanged: (AppSettings) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Column(
+        modifier = modifier
+            .fillMaxSize()
+            .padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp)
+    ) {
+        DarkModeSetting(
+            isDarkMode = currentSettings.isDarkMode,
+            onDarkModeChanged = { isDarkMode ->
+                onSettingsChanged(currentSettings.copy(isDarkMode = isDarkMode))
             }
-        }
+        )
+
+        SortBySetting(
+            sortBy = currentSettings.sortBy,
+            onSortByChanged = { sortBy ->
+                onSettingsChanged(currentSettings.copy(sortBy = sortBy))
+            }
+        )
     }
 }
 
 @Composable
-fun SortOption(text: String, selected: Boolean, onSelect: () -> Unit) {
+fun DarkModeSetting(isDarkMode: Boolean, onDarkModeChanged: (Boolean) -> Unit) {
     Row(
         verticalAlignment = Alignment.CenterVertically,
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 4.dp)
+        horizontalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        RadioButton(
-            selected = selected,
-            onClick = onSelect,
-            colors = RadioButtonDefaults.colors(
-                selectedColor = MaterialTheme.colorScheme.primary
-            )
+        Text("Dark Mode", modifier = Modifier.weight(1f))
+        Switch(
+            checked = isDarkMode,
+            onCheckedChange = onDarkModeChanged
         )
-        Text(text = text, modifier = Modifier.padding(start = 8.dp))
+    }
+    Divider()
+}
+
+@Composable
+fun SortBySetting(sortBy: SortBy, onSortByChanged: (SortBy) -> Unit) {
+    val sortOptions = SortBy.values()
+    var expanded by remember { mutableStateOf(false) }
+
+    Text("Sort By", style = MaterialTheme.typography.titleMedium)
+
+    Column {
+        OutlinedTextField(
+            value = sortBy.name,
+            onValueChange = { },
+            readOnly = true,
+            label = { Text("Sort By") },
+            modifier = Modifier.fillMaxWidth(),
+            trailingIcon = {
+                IconButton(onClick = { expanded = !expanded }) {
+                    Icon(
+                        imageVector = Icons.Default.ArrowDropDown,
+                        contentDescription = "Expand Sort Options"
+                    )
+                }
+            }
+        )
+
+        if (expanded) {
+            sortOptions.forEach { option ->
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.padding(vertical = 4.dp)
+                ) {
+                    RadioButton(
+                        selected = sortBy == option,
+                        onClick = {
+                            onSortByChanged(option)
+                            expanded = false
+                        },
+                        colors = RadioButtonDefaults.colors(
+                            selectedColor = MaterialTheme.colorScheme.primary
+                        )
+                    )
+                    Text(text = option.name, modifier = Modifier.padding(start = 8.dp))
+                }
+            }
+        }
     }
 }

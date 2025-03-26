@@ -10,30 +10,26 @@ import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.SideEffect
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
 import androidx.core.view.WindowCompat
-import androidx.compose.ui.graphics.Color
 
 private val DarkColorScheme = darkColorScheme(
-    primary = LogoColor, // Use LogoColor for primary in dark mode
+    primary = LogoColor,
     secondary = PurpleGrey80,
     tertiary = Pink80,
-    onPrimary = Color.White, // Make sure text on primary is readable
-    // ADD THIS:
-    onSurface = DarkTaskNameColor, // Use DarkTaskNameColor for text on surfaces in dark mode
-
+    onPrimary = Color.White
 )
 
 private val LightColorScheme = lightColorScheme(
-    primary = LogoColor, // Use LogoColor for primary in light mode
+    primary = LogoColor,
     secondary = PurpleGrey40,
     tertiary = Pink40,
-    onPrimary = Color.White, // Text color on primary
-    // You might want to add onSurface here too, for light mode
+    onPrimary = Color.White
 
-    /* Other default colors to override
+    /* Other default colors
     background = Color(0xFFFFFBFE),
     surface = Color(0xFFFFFBFE),
     onPrimary = Color.White,
@@ -65,13 +61,13 @@ fun RuToDoTheme(
         SideEffect {
             val window = (view.context as Activity).window
             window.statusBarColor = colorScheme.primary.toArgb()
-            WindowCompat.getInsetsController(window, view).isAppearanceLightStatusBars = !darkTheme // Corrected this line
+            WindowCompat.getInsetsController(window, view).isAppearanceLightStatusBars = !darkTheme
         }
     }
 
     MaterialTheme(
         colorScheme = colorScheme,
-        typography = Typography, // Make sure you have a Typography.kt file
+        typography = Typography,
         content = content
     )
 }

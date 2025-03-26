@@ -18,6 +18,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -61,6 +62,7 @@ class MainActivity : ComponentActivity() {
         setContent {
             val viewModel: ToDoViewModel = viewModel(factory = ToDoViewModelFactory(application))
             val appSettingsState by viewModel.appSettings.collectAsState()
+
             RuToDoTheme(darkTheme = appSettingsState.isDarkMode) {
                 Surface(
                     modifier = Modifier.fillMaxSize(),
@@ -79,7 +81,7 @@ fun AppNavigation(viewModel: ToDoViewModel) {
 
     NavHost(navController = navController, startDestination = "main") {
         composable("main") {
-            ToDoList(
+            MainScreen(
                 viewModel = viewModel,
                 onNavigateToSettings = { navController.navigate("settings") }
             )
@@ -98,9 +100,16 @@ fun AppNavigation(viewModel: ToDoViewModel) {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ToDoList(viewModel: ToDoViewModel, onNavigateToSettings: () -> Unit) {
+fun MainScreen(viewModel: ToDoViewModel, onNavigateToSettings: () -> Unit) {
     val toDos by viewModel.toDos.collectAsState()
-    var showDialog by remember { mutableStateOf(false) }
+    var dialogState by remember { mutableStateOf<DialogState>(DialogState.Hidden) }
+
+
+    val topAppBarContainerColor = MaterialTheme.colorScheme.primary
+    val topAppBarTitleContentColor = MaterialTheme.colorScheme.onPrimary
+    val topAppBarActionIconContentColor = MaterialTheme.colorScheme.onPrimary
+    val fabContainerColor = MaterialTheme.colorScheme.primary
+    val fabContentColor = MaterialTheme.colorScheme.onPrimary
 
     Scaffold(
         topBar = {
@@ -112,17 +121,17 @@ fun ToDoList(viewModel: ToDoViewModel, onNavigateToSettings: () -> Unit) {
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.primary,
-                    titleContentColor = MaterialTheme.colorScheme.onPrimary,
-                    actionIconContentColor = MaterialTheme.colorScheme.onPrimary
+                    containerColor = topAppBarContainerColor,
+                    titleContentColor = topAppBarTitleContentColor,
+                    actionIconContentColor = topAppBarActionIconContentColor
                 )
             )
         },
         floatingActionButton = {
             FloatingActionButton(
-                onClick = { showDialog = true },
-                containerColor = MaterialTheme.colorScheme.primary,
-                contentColor = MaterialTheme.colorScheme.onPrimary
+                onClick = { dialogState = DialogState.Add },
+                containerColor = fabContainerColor,
+                contentColor = fabContentColor
             ) {
                 Icon(Icons.Filled.Add, contentDescription = "Add ToDo")
             }
@@ -138,79 +147,58 @@ fun ToDoList(viewModel: ToDoViewModel, onNavigateToSettings: () -> Unit) {
                 ToDoItemCard(
                     toDo = toDo,
                     onToDoChange = { updatedToDo -> viewModel.updateToDo(updatedToDo) },
-                    onDeleteToDo = { viewModel.deleteToDo(toDo.id) }
+                    onDeleteToDo = {toDoItem ->  viewModel.deleteToDo(toDoItem) },
+                    onEditToDo = { dialogState = DialogState.Edit(toDo) }
                 )
             }
         }
     }
 
-    if (showDialog) {
-        AddToDoDialog(
-            onDismiss = { showDialog = false },
-            onAddToDo = { title, description, category ->
-                viewModel.addToDo(title, description, category)
-                showDialog = false
-            }
-        )
+    // Show the dialog based on the dialog state
+    when (dialogState) {
+        is DialogState.Add -> {
+            ToDoDialog(
+                onDismiss = { dialogState = DialogState.Hidden },
+                onSaveToDo = { title, description, category ->
+                    viewModel.addToDo(title, description, category)
+                    dialogState = DialogState.Hidden
+                },
+                title = "",
+                description = "",
+                category = ""
+            )
+        }
+        is DialogState.Edit -> {
+            val toDo = (dialogState as DialogState.Edit).toDo
+            ToDoDialog(
+                onDismiss = { dialogState = DialogState.Hidden },
+                onSaveToDo = { title, description, category ->
+                    viewModel.updateToDo(toDo.copy(title = title, description = description, category = category))
+                    dialogState = DialogState.Hidden
+                },
+                title = toDo.title,
+                description = toDo.description,
+                category = toDo.category
+            )
+        }
+        DialogState.Hidden -> Unit
     }
 }
 
 @Composable
-fun AddToDoDialog(onDismiss: () -> Unit, onAddToDo: (String, String, String) -> Unit) {
-    var title by remember { mutableStateOf("") }
-    var description by remember { mutableStateOf("") }
-    var category by remember { mutableStateOf("") }
+fun ToDoItemCard(
+    toDo: ToDoItem,
+    onToDoChange: (ToDoItem) -> Unit,
+    onDeleteToDo: (ToDoItem) -> Unit,
+    onEditToDo: () -> Unit
+) {
 
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text("Add ToDo") },
-        text = {
-            Column(
-                verticalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                TextField(
-                    value = title,
-                    onValueChange = { title = it },
-                    label = { Text("Title") },
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth()
-                )
-                TextField(
-                    value = description,
-                    onValueChange = { description = it },
-                    label = { Text("Description") },
-                    modifier = Modifier.fillMaxWidth()
-                )
-                TextField(
-                    value = category,
-                    onValueChange = { category = it },
-                    label = { Text("Category") },
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth()
-                )
-            }
-        },
-        confirmButton = {
-            Button(
-                onClick = {
-                    if (title.isNotBlank() && category.isNotBlank()) {
-                        onAddToDo(title, description, category)
-                    }
-                }
-            ) {
-                Text("Add")
-            }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) {
-                Text("Cancel")
-            }
-        }
-    )
-}
+    val textColor = if (toDo.isDone) {
+        Color.Gray
+    } else {
+        MaterialTheme.colorScheme.onSurface
+    }
 
-@Composable
-fun ToDoItemCard(toDo: ToDoItem, onToDoChange: (ToDoItem) -> Unit, onDeleteToDo: () -> Unit) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -240,32 +228,99 @@ fun ToDoItemCard(toDo: ToDoItem, onToDoChange: (ToDoItem) -> Unit, onDeleteToDo:
                     style = TextStyle(
                         fontWeight = FontWeight.Bold,
                         fontSize = 18.sp,
-                        color = if (toDo.isDone) Color.Gray else Color.Black
+                        color = textColor // Use theme-aware text color
                     )
                 )
                 if (toDo.description.isNotBlank()) {
                     Text(
                         text = toDo.description,
                         style = MaterialTheme.typography.bodyMedium.copy(
-                            color = if (toDo.isDone) Color.Gray else MaterialTheme.colorScheme.onSurface
+                            color = textColor
                         )
                     )
                 }
                 Text(
                     text = toDo.category,
                     style = MaterialTheme.typography.bodySmall.copy(
-                        color = if (toDo.isDone) Color.Gray else MaterialTheme.colorScheme.primary
-                    )
-                )
+                        color = textColor
+                    ))
             }
-            IconButton(onClick = onDeleteToDo) {
+            IconButton(onClick = { onDeleteToDo(toDo) }) {
                 Icon(Icons.Filled.Delete, contentDescription = "Delete ToDo", tint = Color.Red)
+            }
+            IconButton(onClick = onEditToDo) {
+                Icon(Icons.Filled.Edit, contentDescription = "Edit ToDo", tint = Color.Blue)
             }
         }
     }
 }
 
-// ViewModel Factory (needed because of the Application parameter)
+@Composable
+fun ToDoDialog(
+    onDismiss: () -> Unit,
+    onSaveToDo: (String, String, String) -> Unit,
+    title: String,
+    description: String,
+    category: String
+) {
+    var titleState by remember { mutableStateOf(title) }
+    var descriptionState by remember { mutableStateOf(description) }
+    var categoryState by remember { mutableStateOf(category) }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(if (title.isEmpty()) "Add ToDo" else "Edit ToDo") },
+        text = {
+            Column(
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                TextField(
+                    value = titleState,
+                    onValueChange = { titleState = it },
+                    label = { Text("Title") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth()
+                )
+                TextField(
+                    value = descriptionState,
+                    onValueChange = { descriptionState = it },
+                    label = { Text("Description") },
+                    modifier = Modifier.fillMaxWidth()
+                )
+                TextField(
+                    value = categoryState,
+                    onValueChange = { categoryState = it },
+                    label = { Text("Category") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
+        },
+        confirmButton = {
+            Button(
+                onClick = {
+                    if (titleState.isNotBlank() && categoryState.isNotBlank()) {
+                        onSaveToDo(titleState, descriptionState, categoryState)
+                    }
+                }
+            ) {
+                Text(if (title.isEmpty()) "Add" else "Save")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Cancel")
+            }
+        }
+    )
+}
+
+sealed class DialogState {
+    object Hidden : DialogState()
+    object Add : DialogState()
+    class Edit(val toDo: ToDoItem) : DialogState()
+}
+
 class ToDoViewModelFactory(private val application: Application) : ViewModelProvider.Factory {
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
         if (modelClass.isAssignableFrom(ToDoViewModel::class.java)) {
