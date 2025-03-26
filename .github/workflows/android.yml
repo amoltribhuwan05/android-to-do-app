@@ -31,6 +31,5 @@ jobs:
         name: application
         path: |
          app/build/outputs/apk/debug/app-debug.apk
-         app/mobile/build/outputs/bundles/debug/mobile-debug.aab
-         app/mobile/release/mobile-release.aab
+         app/mobile/
         retention-days: 5
