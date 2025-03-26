@@ -6,15 +6,15 @@ plugins {
 }
 
 android {
-    namespace = "com.rusouz.rutodo" // REPLACE WITH YOUR PACKAGE NAME
+    namespace = "com.rusouz.rutodo"
     compileSdk = 35
 
     defaultConfig {
-        applicationId = "com.rusouz.rutodo" // REPLACE WITH YOUR PACKAGE NAME
+        applicationId = "com.rusouz.rutodo"
         minSdk = 24
         targetSdk = 34
-        versionCode = 1
-        versionName = "1.0"
+        versionCode = 3
+        versionName = "1.1.1"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
